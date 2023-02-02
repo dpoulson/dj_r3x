@@ -4,8 +4,12 @@
 
 #define LED_PIN    9
 #define LED_COUNT 42
+#define EYE_PIN   10
 
 #define MODESWITCH 3
+
+#define SOUND_PIN 10
+// #define ENABLE_SOUND
 
 
 int flashSpeed = 100;
@@ -25,6 +29,7 @@ void setup() {
 
   Serial.begin(115200);
   pinMode(A7, INPUT_PULLUP);
+  pinMode(SOUND_PIN, INPUT);
   
   button1.attach( MODESWITCH, INPUT_PULLUP ); // USE EXTERNAL PULL-UP
 
@@ -43,17 +48,20 @@ void setup() {
 void loop() {
 
   checkMode();
-
-  if (lightMode == 0) 
-    standardMode();
-  else if (lightMode == 1)
-    discoMode();
+  standardMode();
 
   brightness = map(analogRead(A1), 0, 1024, 0, 150);
-  flashSpeed = map(analogRead(A2), 0, 890, 100, 5000);
-  eyeBrightness = map(analogRead(A3), 0, 890, 100, 1000);
-
+  flashSpeed = map(analogRead(A2), 0, 890, 0, 3000);
+  eyeBrightness = map(analogRead(A3), 0, 890, 0, 250);
 /*
+  Serial.print(analogRead(A1));
+  Serial.print(",");
+  Serial.print(analogRead(A2));
+  Serial.print(",");  
+  Serial.print(analogRead(A3));
+  Serial.print(",");
+  Serial.print(eyeBrightness);
+  Serial.print(",");
   Serial.print(lightMode);
   Serial.print(",");
   Serial.print(brightness);
@@ -63,10 +71,15 @@ void loop() {
   Serial.print(eyeBrightness);
   Serial.print(",");
   Serial.print(lastChange);
+  Serial.print(",");
+  Serial.print(digitalRead(10));
   Serial.println();
   */
 
-  strip.setBrightness(eyeBrightness);
+  strip.setBrightness(brightness);
+
+  // Set eye brightness
+  analogWrite(EYE_PIN, eyeBrightness);
 
   
 }
@@ -78,17 +91,34 @@ void checkMode() {
     // TOGGLE THE LED STATE : 
     lightMode = !lightMode; // SET ledState TO THE OPPOSITE OF ledState
   }
-  Serial.println(lightMode);
   
 }
 
 void standardMode() {
 
-  int sound = digitalRead(10);
+  int sound = 0;
+
+  #ifdef ENABLE_SOUND
+    int soundValue = analogRead(A5);
+    Serial.print(soundValue);
+    Serial.print(","); 
+    Serial.println();
+    
+    if (soundValue > analogRead(A3)) {
+      sound = 1;
+    } else {
+      sound = 0;
+    }
+  #endif
 
   if (millis() > lastChange + flashSpeed || sound == 1) {
     for(int i=0; i<strip.numPixels(); i++)
     {
+      if (lightMode) {
+        colour = strip.Color(random(255),random(255),random(255));
+      } else {
+        colour = strip.Color(255,255,255);
+      }
       int chance = random(1,100);
       if (chance > 50) 
       {
